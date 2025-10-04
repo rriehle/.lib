@@ -72,92 +72,101 @@ This library is a dependency of:
 ;; => {:date "2025-10-01" :status :accepted :tag #{:architecture}}
 ```
 
-### ADR Support
+### Test Framework
 
-**`adr-core.bb`** - ADR-specific configuration and path resolution
+**`test/test-framework.bb`** - Comprehensive testing utilities for Babashka scripts
 
-- **Purpose**: ADR path discovery, config defaults, validation helpers
-- **Used by**: ADR validation, search, and duplicate detection tools
+- **Purpose**: Reusable test framework for all CLI tools (ADR, Requirements, RunNotes)
+- **Used by**: Test suites across all projects
 - **Features**:
-  - ADR directory resolution
-  - Sequence number parsing
-  - Duplicate detection
-  - Template management
+  - Assertion functions (`assert-true`, `assert-equal`, `assert-string-contains`, etc.)
+  - Property-based testing utilities
+  - Test fixtures (temporary directories, file creation)
+  - Command execution helpers
+  - Test reporting and summaries
 
-**`adr-metadata-extractor.bb`** - ADR metadata extraction and validation
+**Assertion Functions:**
+- `assert-true`, `assert-false` - Boolean assertions
+- `assert-equal`, `assert-not-equal` - Value equality
+- `assert-string-contains` - Substring matching
+- `assert-contains` - Collection membership
+- `assert-nil`, `assert-not-nil` - Null checks
+- `assert-count` - Collection size
+- `assert-throws` - Exception expectations
+- `assert-file-exists`, `assert-file-not-exists` - File system checks
 
-- **Purpose**: Extract and validate ADR-specific metadata
-- **Used by**: ADR search, validation tools
-- **Features**:
-  - Parse ADR title and number
-  - Extract and validate metadata schema
-  - Status and tag validation
-  - Cross-reference resolution
+**Test Utilities:**
+- `test-case` - Run single test with pass/fail reporting
+- `run-tests` - Execute test suite and return results
+- `with-temp-dir` - Temporary directory fixture with auto-cleanup
+- `create-test-file` - Create test files in temp directories
+
+**Property-Based Testing:**
+- `gen-string`, `gen-int`, `gen-seq` - Random data generators
+- `check-property` - Run property tests N times
 
 **Example usage:**
 ```clojure
-(load-file (str (fs/expand-home "~/.lib/adr-core.bb")))
-(load-file (str (fs/expand-home "~/.lib/adr-metadata-extractor.bb")))
+(load-file (str (fs/expand-home "~/.lib/test/test-framework.bb")))
 
-;; Get ADR directory for current project
-(def adr-dir (resolve-adr-path config))
+;; Import what you need
+(def test-case (:test-case test-framework/exports))
+(def assert-equal (:assert-equal test-framework/exports))
+(def assert-string-contains (:assert-string-contains test-framework/exports))
+(def with-temp-dir (:with-temp-dir test-framework/exports))
 
-;; Extract ADR metadata
-(def adr-data (extract-adr-metadata "00042-event-sourcing.md"))
-```
+;; Write tests
+(defn test-example []
+  (with-temp-dir
+    (fn [temp-dir]
+      (let [result (my-function temp-dir)]
+        (assert-equal "expected" result "Should return expected value")))))
 
-### Requirements Support
+(defn test-error-messages []
+  (let [error (get-error-message)]
+    (assert-string-contains error "field-name"
+                           "Error should mention the field")))
 
-**`req-core.bb`** - Requirements-specific configuration and utilities
+;; Run tests
+(def tests
+  [(test-case "Example test" test-example)
+   (test-case "Error message test" test-error-messages)])
 
-- **Purpose**: Requirements path discovery, ID parsing, traceability helpers
-- **Used by**: Requirements validation, search, and traceability tools
-- **Features**:
-  - Requirements directory resolution
-  - REQ-ID format parsing
-  - Category and priority validation
-  - Traceability link resolution
-
-**`req-metadata-extractor.bb`** - Requirements metadata extraction
-
-- **Purpose**: Extract and validate requirements-specific metadata
-- **Used by**: Requirements search, validation, traceability tools
-- **Features**:
-  - Parse requirement ID and category
-  - Extract metadata with schema validation
-  - ISO 25010 taxonomy support
-  - Traceability link extraction
-
-**Example usage:**
-```clojure
-(load-file (str (fs/expand-home "~/.lib/req-core.bb")))
-(load-file (str (fs/expand-home "~/.lib/req-metadata-extractor.bb")))
-
-;; Get requirements directory
-(def req-dir (resolve-req-path config))
-
-;; Extract requirement metadata
-(def req-data (extract-req-metadata "REQ-AUTH-001-mfa.md"))
+;; Execute and get results
+(let [results ((:run-tests test-framework/exports) tests)]
+  (println (str (:passed results) " passed, " (:failed results) " failed")))
 ```
 
 ## Directory Structure
 
 ```
 ~/.lib/
-├── config-core.bb                # Shared config management
-├── metadata-parser.bb            # EDN metadata parsing
-├── adr-core.bb                   # ADR-specific utilities
-├── adr-metadata-extractor.bb     # ADR metadata extraction
-├── req-core.bb                   # Requirements utilities
-├── req-metadata-extractor.bb     # Requirements metadata extraction
+├── config-core.bb                # Shared config management (truly shared)
+├── metadata-parser.bb            # EDN metadata parsing (truly shared)
+├── test/
+│   └── test-framework.bb         # Test utilities (truly shared)
 └── README.md                     # This file
+
+Note: Project-specific libraries have been moved to their respective projects:
+- ADR libraries: ~/.adr/adr-core.bb, ~/.adr/adr-metadata-extractor.bb
+- Requirements libraries: ~/.req/req-core.bb, ~/.req/req-metadata-extractor.bb
 ```
 
 ## Design Principles
 
-### 1. Single Source of Truth
+### 1. Truly Shared Libraries Only
 
-Common functionality lives here, not duplicated across dependent projects. Changes propagate automatically to all consumers.
+**What belongs in ~/.lib:**
+- Code used by 2+ projects (config-core.bb, metadata-parser.bb)
+- Test infrastructure (test-framework.bb)
+- Universal utilities with no domain-specific logic
+
+**What belongs in project directories:**
+- Domain-specific logic (ADR utilities in ~/.adr, Requirements utilities in ~/.req)
+- Project-specific validation and extraction
+- Tools that only make sense in one domain context
+
+This separation emerged from DRY refactoring work (October 2025) that identified and eliminated duplicate functions while clarifying architectural boundaries.
 
 ### 2. Runtime Loading
 
@@ -215,12 +224,18 @@ clj-kondo --lint *.bb
 ### Loading Multiple Libraries
 
 ```clojure
-;; Load in dependency order
-(def lib-dir (str (fs/expand-home "~/.lib/")))
+;; Load shared libraries from ~/.lib
+(load-file (str (fs/expand-home "~/.lib/config-core.bb")))
+(load-file (str (fs/expand-home "~/.lib/metadata-parser.bb")))
 
-(load-file (str lib-dir "config-core.bb"))
-(load-file (str lib-dir "metadata-parser.bb"))
-(load-file (str lib-dir "adr-core.bb"))
+;; Load project-specific libraries from their home directories
+;; (if building ADR tools)
+(load-file (str (fs/expand-home "~/.adr/adr-core.bb")))
+(load-file (str (fs/expand-home "~/.adr/adr-metadata-extractor.bb")))
+
+;; (if building Requirements tools)
+(load-file (str (fs/expand-home "~/.req/req-core.bb")))
+(load-file (str (fs/expand-home "~/.req/req-metadata-extractor.bb")))
 ```
 
 ### Config Hierarchy
@@ -265,15 +280,17 @@ Check dependent tools' documentation for minimum required version.
 
 (require '[babashka.fs :as fs])
 
-;; Load shared libraries
+;; Load shared libraries from ~/.lib
 (load-file (str (fs/expand-home "~/.lib/config-core.bb")))
 (load-file (str (fs/expand-home "~/.lib/metadata-parser.bb")))
-(load-file (str (fs/expand-home "~/.lib/adr-core.bb")))
-(load-file (str (fs/expand-home "~/.lib/adr-metadata-extractor.bb")))
 
-;; Use shared functionality
-(def config (load-merged-config "~/.adr/config.edn" ".adr.edn"))
-(def adr-dir (resolve-adr-path config))
+;; Load ADR-specific libraries from ~/.adr
+(load-file (str (fs/expand-home "~/.adr/adr-core.bb")))
+(load-file (str (fs/expand-home "~/.adr/adr-metadata-extractor.bb")))
+
+;; Use functionality
+(def config ((:load-config adr-core/exports)))
+(def adr-dir ((:resolve-adr-path adr-core/exports) config))
 ```
 
 ### From Requirements Tools
@@ -284,15 +301,17 @@ Check dependent tools' documentation for minimum required version.
 
 (require '[babashka.fs :as fs])
 
-;; Load shared libraries
+;; Load shared libraries from ~/.lib
 (load-file (str (fs/expand-home "~/.lib/config-core.bb")))
 (load-file (str (fs/expand-home "~/.lib/metadata-parser.bb")))
-(load-file (str (fs/expand-home "~/.lib/req-core.bb")))
-(load-file (str (fs/expand-home "~/.lib/req-metadata-extractor.bb")))
 
-;; Use shared functionality
-(def config (load-merged-config "~/.req/config.edn" ".req.edn"))
-(def req-dir (resolve-req-path config))
+;; Load Requirements-specific libraries from ~/.req
+(load-file (str (fs/expand-home "~/.req/req-core.bb")))
+(load-file (str (fs/expand-home "~/.req/req-metadata-extractor.bb")))
+
+;; Use functionality
+(def config ((:load-config req-core/exports)))
+(def req-dir ((:resolve-req-path req-core/exports) config))
 ```
 
 ## Troubleshooting
@@ -315,10 +334,11 @@ git clone <repo-url> ~/.lib
 **Problem:** `Unable to resolve symbol`
 
 **Solution:** Load libraries in dependency order:
-1. `config-core.bb` (no dependencies)
-2. `metadata-parser.bb` (no dependencies)
-3. Domain-specific cores (`adr-core.bb`, `req-core.bb`)
-4. Domain-specific extractors (depend on core and parser)
+1. Shared libraries first: `config-core.bb`, `metadata-parser.bb` (from ~/.lib)
+2. Domain-specific cores: `adr-core.bb` (from ~/.adr) or `req-core.bb` (from ~/.req)
+3. Domain-specific extractors: `adr-metadata-extractor.bb` or `req-metadata-extractor.bb`
+
+**Note:** Project-specific libraries are now in their respective project directories, not in ~/.lib.
 
 ### Changes not taking effect
 
