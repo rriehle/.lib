@@ -51,7 +51,7 @@
       (fs/exists? (fs/path current ".git"))
       (str current)
 
-      (= current (fs/parent current))
+      (nil? (fs/parent current))
       nil
 
       :else
