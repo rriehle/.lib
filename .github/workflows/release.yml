@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create release tarball
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          DIST_DIR="lib-${VERSION}"
+
+          mkdir -p "${DIST_DIR}"
+
+          # Copy library files
+          cp *.bb "${DIST_DIR}/"
+          cp LICENSE README.md "${DIST_DIR}/"
+
+          # Create VERSION file
+          echo "${VERSION}" > "${DIST_DIR}/VERSION"
+
+          # Create tarball
+          tar czf "lib-${VERSION}.tar.gz" "${DIST_DIR}/"
+
+          # Create checksums
+          sha256sum "lib-${VERSION}.tar.gz" > "lib-${VERSION}.tar.gz.sha256"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            lib-*.tar.gz
+            lib-*.tar.gz.sha256
+            install.sh
+          generate_release_notes: true
+          body: |
+            ## Shared Libraries for ADR/RunNotes/Requirements Tools
+
+            This is the foundation dependency for:
+            - [.adr](https://github.com/rriehle/.adr)
+            - [.runnote](https://github.com/rriehle/.runnote)
+            - [.req](https://github.com/rriehle/.req)
+
+            ### Installation
+            ```bash
+            curl -sL https://github.com/rriehle/.lib/releases/download/${{ steps.version.outputs.VERSION }}/install.sh | bash
+            ```
+
+            ### Verify Installation
+            ```bash
+            ls ~/.lib/*.bb
+            cat ~/.lib/VERSION
+            ```
