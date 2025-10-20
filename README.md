@@ -9,23 +9,45 @@ This repository provides reusable Babashka scripts that implement core functiona
 ## Dependent Projects
 
 This library is a dependency of:
-- **[~/.adr](https://github.com/rriehle/.adr)** - Architecture Decision Records toolkit
-- **[~/.req](https://github.com/rriehle/.req)** - Requirements Management toolkit
-- **[~/.runnote](https://github.com/rriehle/.runnote)** - Development Knowledge Capture system
+
+- **[~/.adr](https://github.com/rriehle/.adr)** - Architecture Decision Records toolkit ✅ **Required**
+- **[~/.runnote](https://github.com/rriehle/.runnote)** - Development Knowledge Capture system ✅ **Required**
+- **[~/.req](https://github.com/rriehle/.req)** - Requirements Management toolkit ❌ **No dependency**
+
+See [DEPENDENCIES.md](DEPENDENCIES.md) for version compatibility matrix.
 
 ## Installation
 
-1. Clone this repository to `~/.lib`:
-   ```bash
-   git clone <repo-url> ~/.lib
-   ```
+### From GitHub Releases (Recommended)
 
-2. No PATH modification needed - dependent tools load these libraries directly using `load-file`.
+```bash
+# Install latest release
+curl -sL https://github.com/rriehle/.lib/releases/latest/download/install.sh | bash
 
-3. Verify installation:
-   ```bash
-   ls ~/.lib/*.bb
-   ```
+# Or install specific version
+curl -sL https://github.com/rriehle/.lib/releases/download/v1.0.0/install.sh | bash
+```
+
+This installs to `~/.lib/` by default. Dependent toolkits (`.adr`, `.runnote`) will automatically detect and use it.
+
+### From Source (Development)
+
+```bash
+# Clone this repository to ~/.lib
+git clone https://github.com/rriehle/.lib.git ~/.lib
+```
+
+### Verify Installation
+
+```bash
+# Check files installed
+ls ~/.lib/*.bb
+
+# Check version
+cat ~/.lib/VERSION
+```
+
+**Note:** `.lib` must be installed before installing dependent toolkits (`.adr`, `.runnote`).
 
 ## Library Modules
 
@@ -42,6 +64,7 @@ This library is a dependency of:
   - Project root discovery
 
 **Example usage:**
+
 ```clojure
 (load-file (str (fs/expand-home "~/.lib/config-core.bb")))
 
@@ -64,6 +87,7 @@ This library is a dependency of:
   - Handles malformed metadata gracefully
 
 **Example usage:**
+
 ```clojure
 (load-file (str (fs/expand-home "~/.lib/metadata-parser.bb")))
 
@@ -86,6 +110,7 @@ This library is a dependency of:
   - Test reporting and summaries
 
 **Assertion Functions:**
+
 - `assert-true`, `assert-false` - Boolean assertions
 - `assert-equal`, `assert-not-equal` - Value equality
 - `assert-string-contains` - Substring matching
@@ -96,16 +121,19 @@ This library is a dependency of:
 - `assert-file-exists`, `assert-file-not-exists` - File system checks
 
 **Test Utilities:**
+
 - `test-case` - Run single test with pass/fail reporting
 - `run-tests` - Execute test suite and return results
 - `with-temp-dir` - Temporary directory fixture with auto-cleanup
 - `create-test-file` - Create test files in temp directories
 
 **Property-Based Testing:**
+
 - `gen-string`, `gen-int`, `gen-seq` - Random data generators
 - `check-property` - Run property tests N times
 
 **Example usage:**
+
 ```clojure
 (load-file (str (fs/expand-home "~/.lib/test/test-framework.bb")))
 
@@ -157,11 +185,13 @@ Note: Project-specific libraries have been moved to their respective projects:
 ### 1. Truly Shared Libraries Only
 
 **What belongs in ~/.lib:**
+
 - Code used by 2+ projects (config-core.bb, metadata-parser.bb)
 - Test infrastructure (test-framework.bb)
 - Universal utilities with no domain-specific logic
 
 **What belongs in project directories:**
+
 - Domain-specific logic (ADR utilities in ~/.adr, Requirements utilities in ~/.req)
 - Project-specific validation and extraction
 - Tools that only make sense in one domain context
@@ -171,6 +201,7 @@ This separation emerged from DRY refactoring work (October 2025) that identified
 ### 2. Runtime Loading
 
 Libraries are loaded at runtime using `load-file`, allowing:
+
 - Zero build process
 - Immediate updates across all dependent tools
 - Easy debugging and development
@@ -182,6 +213,7 @@ Each library is self-contained with clear dependencies. Libraries can load other
 ### 4. Babashka Native
 
 All code is Babashka-compatible:
+
 - Fast startup time (no JVM)
 - Minimal dependencies
 - Standard Clojure syntax
@@ -263,12 +295,20 @@ clj-kondo --lint *.bb
 
 ## Versioning
 
-This repository follows semantic versioning:
-- **Major**: Breaking API changes
-- **Minor**: New features, backward compatible
-- **Patch**: Bug fixes
+This repository follows [semantic versioning](https://semver.org/):
 
-Check dependent tools' documentation for minimum required version.
+- **Major (X.0.0)**: Breaking API changes - requires toolkit updates
+- **Minor (1.X.0)**: New features, backward compatible - safe to upgrade
+- **Patch (1.0.X)**: Bug fixes - recommended for all
+
+**Current Version:** v1.0.0
+
+See [DEPENDENCIES.md](DEPENDENCIES.md) for:
+
+- Version compatibility matrix
+- Toolkit version requirements
+- Upgrade and rollback procedures
+- Breaking change policy
 
 ## Integration Examples
 
@@ -321,6 +361,7 @@ Check dependent tools' documentation for minimum required version.
 **Problem:** `FileNotFoundException: ~/.lib/config-core.bb`
 
 **Solution:**
+
 ```bash
 # Verify installation
 ls ~/.lib/*.bb
@@ -334,6 +375,7 @@ git clone <repo-url> ~/.lib
 **Problem:** `Unable to resolve symbol`
 
 **Solution:** Load libraries in dependency order:
+
 1. Shared libraries first: `config-core.bb`, `metadata-parser.bb` (from ~/.lib)
 2. Domain-specific cores: `adr-core.bb` (from ~/.adr) or `req-core.bb` (from ~/.req)
 3. Domain-specific extractors: `adr-metadata-extractor.bb` or `req-metadata-extractor.bb`
@@ -345,6 +387,7 @@ git clone <repo-url> ~/.lib
 **Problem:** Updated library but tools still use old code
 
 **Solution:** Babashka scripts load libraries at runtime - no caching. Check:
+
 ```bash
 # Verify file was actually saved
 cat ~/.lib/config-core.bb | head -20
