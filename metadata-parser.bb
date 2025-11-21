@@ -276,19 +276,48 @@
 ;; Utility Functions
 ;; ============================================================================
 
+(defn safe-tag-strings
+  "Safely convert tags to string representation, handling malformed tags gracefully.
+   Returns vector of tag strings like ':tag1', skipping invalid tags with warnings.
+
+   Args:
+     tags: Collection of tags (should be keywords, but may contain invalid types)
+     file-context: Optional string describing the file/context for warning messages
+
+   Returns:
+     Vector of valid tag strings"
+  ([tags]
+   (safe-tag-strings tags nil))
+  ([tags file-context]
+   (when tags
+     (into []
+           (keep (fn [tag]
+                   (cond
+                     (keyword? tag) (str ":" (name tag))
+                     (symbol? tag) (str ":" (name tag))
+                     :else (do
+                             (binding [*out* *err*]
+                               (println (str "WARNING: Skipping malformed tag"
+                                           (when file-context (str " in " file-context))
+                                           ": " tag " (type: " (type tag) ")")))
+                             nil))))
+           tags))))
+
 (defn summarize-metadata
   "Generate human-readable summary of metadata."
-  [metadata]
-  (str "Phase: " (:phase metadata)
-       "\nTags: " (str/join " " (map #(str ":" (name %)) (:tag metadata)))
-       (when (:status metadata)
-         (str "\nStatus: " (name (:status metadata))))
-       (when (:thinking-mode metadata)
-         (str "\nThinking Mode: " (:thinking-mode metadata)))
-       (when (:date metadata)
-         (str "\nDate: " (if (string? (:date metadata))
-                           (:date metadata)
-                           (str (:created (:date metadata))))))))
+  ([metadata]
+   (summarize-metadata metadata nil))
+  ([metadata file-context]
+   (str "Phase: " (:phase metadata)
+        "\nTags: " (str/join " " (safe-tag-strings (:tag metadata) file-context))
+        (when (:status metadata)
+          (str "\nStatus: " (name (:status metadata))))
+        (when (:thinking-mode metadata)
+          (str "\nThinking Mode: " (:thinking-mode metadata)))
+        (when (:date metadata)
+          (str "\nDate: " (if (string? (:date metadata))
+                            (:date metadata)
+                            (str (:created (:date metadata)))))))))
 
 ;; ============================================================================
 ;; Export for use by other scripts
@@ -301,4 +330,5 @@
    :migrate-header migrate-header
    :extract-keyword-headers extract-keyword-headers
    :keyword-headers->edn keyword-headers->edn
-   :summarize-metadata summarize-metadata})
+   :summarize-metadata summarize-metadata
+   :safe-tag-strings safe-tag-strings})

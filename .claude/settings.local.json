@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(~/.adr/bin/adr-duplicate-detector:*)",
+      "Bash(~/.adr/bin/adr-search list:*)",
+      "Bash(~/.adr/bin/adr-validate:*)",
+      "Bash(~/.req/bin/req-fix-metadata:*)",
+      "Bash(~/.req/bin/req-search:*)",
+      "Bash(~/.req/bin/req-trace:*)",
+      "Bash(~/.req/bin/req-validate:*)",
+      "Bash(~/.req/test/validator-error-reporting-test.bb)",
+      "Bash(git add:*)",
+      "Bash(git tag:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(test:*)",
+      "Bash(tree:*)",
+      "Read(//private/tmp/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
