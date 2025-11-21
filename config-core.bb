@@ -22,7 +22,10 @@
              :root-key :runnote}
    :req {:global "~/.req/config.edn"
          :project ".req.edn"
-         :root-key :req}})
+         :root-key :req}
+   :doc {:global "~/.doc/config.edn"
+         :project ".doc.edn"
+         :root-key :doc}})
 
 (defn get-system-paths
   "Get configuration paths for a system type.
@@ -297,6 +300,42 @@
   [config-result]
   (resolve-path config-result [:req :template-dir]))
 
+(defn resolve-doc-path
+  "Resolve documentation directory path from config.
+   Makes path absolute relative to project root.
+
+   Args:
+     config-result: Result from load-config
+
+   Returns:
+     Absolute path to documentation directory as string"
+  [config-result]
+  (resolve-path config-result [:doc :path]))
+
+(defn resolve-doc-taxonomy
+  "Resolve documentation taxonomy file path from config.
+   Makes path absolute relative to project root.
+
+   Args:
+     config-result: Result from load-config
+
+   Returns:
+     Absolute path to taxonomy file as string"
+  [config-result]
+  (resolve-path config-result [:doc :taxonomy]))
+
+(defn resolve-doc-template-dir
+  "Resolve documentation template directory from config.
+   Makes path absolute, expanding ~ if present.
+
+   Args:
+     config-result: Result from load-config
+
+   Returns:
+     Absolute path to template directory as string"
+  [config-result]
+  (resolve-path config-result [:doc :template-dir]))
+
 ;; ============================================================================
 ;; Config Accessors
 ;; ============================================================================
@@ -350,6 +389,13 @@
   [config-result]
   (get-config-value config-result [:req]))
 
+(defn doc-config
+  "Get the :doc section of the config.
+   Convenience accessor for documentation scripts.
+   Equivalent to (get-config-value config-result [:doc])"
+  [config-result]
+  (get-config-value config-result [:doc]))
+
 ;; ============================================================================
 ;; Export for use by other scripts
 ;; ============================================================================
@@ -383,9 +429,15 @@
    :resolve-req-template-path resolve-req-template-path
    :resolve-req-template-dir resolve-req-template-dir
 
+   ;; Documentation-specific path resolvers
+   :resolve-doc-path resolve-doc-path
+   :resolve-doc-taxonomy resolve-doc-taxonomy
+   :resolve-doc-template-dir resolve-doc-template-dir
+
    ;; Config accessors
    :get-config-value get-config-value
    :get-system-config get-system-config
    :adr-config adr-config
    :runnote-config runnote-config
-   :req-config req-config})
+   :req-config req-config
+   :doc-config doc-config})
